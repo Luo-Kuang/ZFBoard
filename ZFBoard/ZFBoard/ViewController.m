@@ -104,8 +104,8 @@
     
   
     item.next(item1).next(item2).next(item3);
-    
-    [board showItems:@[item, item1, item2,item3] target:self];
+    [board showItem:item];
+
 }
 
 

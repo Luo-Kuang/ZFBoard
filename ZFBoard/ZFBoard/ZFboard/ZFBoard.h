@@ -12,6 +12,11 @@
 NS_ASSUME_NONNULL_BEGIN
 
 
+#define ZFBOARD_GARY_TEXT_COLOR [UIColor colorWithRed:114/255.0 green:98/255.0 blue:98/255.0 alpha:1]
+#define ZFBOARD_NOMAL_BUTTON_BACKGROUND_COLOR [UIColor colorWithRed:62/255.0 green:151/255.0 blue:253/255.0 alpha:1]
+#define ZFBOARD_UNABLE_BUTTON_BACKGROUND_COLOR [UIColor colorWithRed:179/255.0 green:179/255.0 blue:179/255.0 alpha:1]
+#define ZFBOARD_DONE_BUTTON_BACKGROUND_COLOR [UIColor colorWithRed:98/255.0 green:227/255.0 blue:94/255.0 alpha:1]
+
 
 @interface ZFBoardLabel : UILabel
 
@@ -21,9 +26,12 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 typedef NS_ENUM(NSUInteger, ZFBoardButtonType) {
+    ZFBoardButtonTypeSTART,
     ZFBoardButtonTypeNOMAL,
     ZFBoardButtonTypeUNABLE,
     ZFBoardButtonTypeLOADING,
+    ZFBoardButtonTypeSUCCESS,
+    ZFBoardButtonTypeEND,
 };
 
 @interface ZFBoardButton : UIButton
@@ -36,7 +44,7 @@ typedef NS_ENUM(NSUInteger, ZFBoardButtonType) {
 @interface ZFBoardItem : NSObject
 
 @property (nonatomic, strong, readonly, nullable) ZFBoardItem *nextItem;
-@property (nonatomic, weak, readonly, nullable) ZFBoardItem *perviousItem;
+@property (nonatomic, strong, readonly, nullable) ZFBoardItem *perviousItem;
 - (ZFBoardItem *(^)(ZFBoardItem *item))next;
 
 
@@ -102,10 +110,12 @@ typedef NS_ENUM(NSUInteger, ZFBoardButtonType) {
 /**
  Present items in current target
  */
-- (void)showItems:(NSArray <ZFBoardItem *>*)items target:(UIViewController *)target;
+
+- (void)showItem:(ZFBoardItem *)item;
 @property (nonatomic, strong) ZFBoardItemsVC *boardVc;
 - (void)loadNext;
 - (void)loadPervious;
+- (void)hiden;
 @end
 
 NS_ASSUME_NONNULL_END

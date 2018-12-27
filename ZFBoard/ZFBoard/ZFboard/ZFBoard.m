@@ -10,11 +10,6 @@
 #import <Masonry.h>
 
 
-#define ZFBOARD_GARY_TEXT_COLOR [UIColor colorWithRed:114/255.0 green:98/255.0 blue:98/255.0 alpha:1]
-#define ZFBOARD_NOMAL_BUTTON_BACKGROUND_COLOR [UIColor colorWithRed:62/255.0 green:151/255.0 blue:253/255.0 alpha:1]
-#define ZFBOARD_UNABLE_BUTTON_BACKGROUND_COLOR [UIColor colorWithRed:179/255.0 green:179/255.0 blue:179/255.0 alpha:1]
-#define ZFBOARD_DONE_BUTTON_BACKGROUND_COLOR [UIColor colorWithRed:72/255.0 green:211/255.0 blue:68/255.0 alpha:1]
-
 @implementation ZFBoardLabel
 
 - (instancetype)initWithFrame:(CGRect)frame
@@ -81,26 +76,37 @@
 
 
 - (void)setType:(ZFBoardButtonType)type {
+    if (_type == type) {
+        return;
+    }
     _type = type;
     switch (type) {
         case ZFBoardButtonTypeNOMAL:
             [self.statusLayer setBackgroundColor:ZFBOARD_NOMAL_BUTTON_BACKGROUND_COLOR.CGColor];
             [self.statusLayer setFrame:CGRectMake(0, 0, self.frame.size.width, self.frame.size.height)];
+            self.userInteractionEnabled = YES;
+            NSLog(@"ZFBoardButtonTypeNOMAL");
             break;
         case ZFBoardButtonTypeUNABLE:
             [self.statusLayer setBackgroundColor:ZFBOARD_UNABLE_BUTTON_BACKGROUND_COLOR.CGColor];
             [self.statusLayer setFrame:CGRectMake(0, 0, self.frame.size.width, self.frame.size.height)];
+            self.userInteractionEnabled = NO;
+            NSLog(@"ZFBoardButtonTypeUNABLE");
             break;
         case ZFBoardButtonTypeLOADING: {
             [self.statusLayer setBackgroundColor:ZFBOARD_NOMAL_BUTTON_BACKGROUND_COLOR.CGColor];
-            self.userInteractionEnabled = NO;
             [self.statusLayer setFrame:CGRectMake(0, 0, 0, self.frame.size.height)];
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                self.userInteractionEnabled = YES;
-            });
+            self.userInteractionEnabled = NO;
+            NSLog(@"ZFBoardButtonTypeLOADING");
             break;
         }
-            
+        case ZFBoardButtonTypeSUCCESS: {
+            [self.statusLayer setBackgroundColor:ZFBOARD_DONE_BUTTON_BACKGROUND_COLOR.CGColor];
+            [self.statusLayer setFrame:CGRectMake(0, 0, self.frame.size.width, self.frame.size.height)];
+            self.userInteractionEnabled = YES;
+            NSLog(@"ZFBoardButtonTypeSUCCESS");
+            break;
+        }
         default:
             break;
     }
@@ -122,6 +128,9 @@
     if (self.type != ZFBoardButtonTypeLOADING) {
         self.type = ZFBoardButtonTypeLOADING;
         NSLog(@"chage type");
+    }
+    if (_progress == progress) {
+        return;
     }
     NSLog(@"%.2f", progress);
     _progress = progress<0?0:progress>1?1:progress;
@@ -145,7 +154,7 @@
 
 @interface ZFBoardItem ()
 
-@property (nonatomic, weak, nullable) ZFBoardItem *perviousItem;
+@property (nonatomic, strong, nullable) ZFBoardItem *perviousItem;
 @property (nonatomic, strong, nullable) ZFBoardItem *nextItem;
 
 @end
@@ -177,16 +186,10 @@
     return self;
 }
 
-
-- (void)setNextItem:(ZFBoardItem *)nextItem {
-    _nextItem = nextItem;
-    nextItem.perviousItem = self;
-}
-
-
 - (ZFBoardItem * _Nonnull (^)(ZFBoardItem * _Nonnull))next {
     return ^ZFBoardItem*(ZFBoardItem *item) {
         self.nextItem = item;
+        item.perviousItem = self;
         return item;
     };
 }
@@ -225,12 +228,14 @@
         self.closeButton = ({
             UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
             [self.contentView addSubview:button];
+//            [button setBackgroundColor:UIColor.blackColor];
             [button mas_makeConstraints:^(MASConstraintMaker *make) {
                 make.top.mas_equalTo(self.contentView).offset(10);
                 make.right.mas_equalTo(self.contentView).mas_offset(-10);
                 make.height.mas_equalTo(44);
                 make.width.mas_equalTo(44);
             }];
+            [button setImage:[UIImage imageNamed:@"closeicon-1"] forState:UIControlStateNormal];
             [button addTarget:self action:@selector(closeButtonClick:) forControlEvents:UIControlEventTouchUpInside];
             button;
         });
@@ -323,11 +328,13 @@
     return self;
 }
 
+- (void)viewWillLayoutSubviews {
+    [super viewWillLayoutSubviews];
+    [self.contentView bringSubviewToFront:self.closeButton];
+}
 - (void)viewDidLoad {
     
-    [self.view setBackgroundColor:[UIColor grayColor]];
-    
-    [self.contentView bringSubviewToFront:self.closeButton];
+    [self.view setBackgroundColor:[UIColor colorWithWhite:.2 alpha:.4]];
     
 }
 
@@ -385,7 +392,6 @@
         views.alpha = 0;
     }
     self.actionButton.titleLabel.alpha = 0;
-//    [self.actionButton setTitle:@"" forState:UIControlStateNormal];
     
     self.currentItem = item;
     [self.titleLabel setFont:item.titleFont];
@@ -406,7 +412,6 @@
     [self.introduceLabel setTextColor:item.introduceTextColor];
     [self.introduceLabel setFont:item.introduceTextFont];
     
-//    [self.actionButton setBackgroundColor:item.actionButtonBackgroundColor];
     self.actionButton.layer.cornerRadius = item.actionButtonCornerRadius;
     [self.actionButton setType:ZFBoardButtonTypeNOMAL];
     [self.actionButton setTitle:item.actionButtonTitle forState:UIControlStateNormal];
@@ -464,7 +469,13 @@
 {
     self = [super init];
     if (self) {
-        self.boardVc = [[ZFBoardItemsVC alloc] init];
+        self.boardVc = ({
+            ZFBoardItemsVC *boardVc = [[ZFBoardItemsVC alloc] init];
+            boardVc.modalPresentationStyle = UIModalPresentationOverFullScreen;
+            boardVc.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
+            boardVc;
+        });
+        
     }
     return self;
 }
@@ -477,6 +488,22 @@
         
     }];
 }
+- (void)showItem:(ZFBoardItem *)item target:(UIViewController *)target {
+    [self.boardVc loadItem:item];
+    [target presentViewController:self.boardVc animated:YES completion:^{
+        
+    }];
+}
+
+- (void)showItem:(ZFBoardItem *)item {
+    [self showItem:item target:[self rootViewController]];
+}
+
+- (UIViewController *)rootViewController {
+    UIWindow *keyWindow = [UIApplication sharedApplication].keyWindow;
+    UIViewController *vc = keyWindow.rootViewController;
+    return vc;
+}
 
 - (void)loadNext {
     [self.boardVc loadItem:self.boardVc.currentItem.nextItem];
@@ -486,4 +513,9 @@
     [self.boardVc loadItem:self.boardVc.currentItem.perviousItem];
 }
 
+- (void)hiden {
+    [self.boardVc dismissViewControllerAnimated:YES completion:^{
+        
+    }];
+}
 @end
